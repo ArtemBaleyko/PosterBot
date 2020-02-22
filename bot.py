@@ -17,7 +17,7 @@ task_name = " "
 task_time = " "
 mas_tasks = ["Уборка кухни", "Уборка столов", "Закрытие ресторана"]
 tasks_list = "\n"
-t_chat_id = 633616258
+
 
 bot = telebot.TeleBot(config.TOKEN)
 
@@ -166,6 +166,7 @@ def manager_send_task(message):
         bot.send_message(user[0][1], '‼️  У вас новая задача  ‼️')
         bot.send_message(user[0][1], '📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time)
         cursor.execute("""INSERT INTO check_list (name, description, task_time, member_id) VALUES (?,?,?,?)""",[task_name, task_descriprion, task_time, user[0][0]])
+        
         conn.commit()
 
 
@@ -187,11 +188,11 @@ def add_new_user_role(message):
         keyboard1.one_time_keyboard = True
      #keyboard1.resize_keyboard = 0.1
         msg = bot.send_message(message.chat.id, "Подтвердите нового пользователя..." + '\n\n👤  ' + username + '\n\n👤  ' + user_role + '\n\n' +'👇👇👇👇👇👇👇👇', reply_markup = keyboard1)
-        bot.register_next_step_handler(msg, add_new_user_toBD)
+        bot.register_next_step_handler(msg, add_new_user_toDB)
     except:
         bot.send_message(message.chat.id, "add_new_user_role")
 
-def add_new_user_toBD(message):
+def add_new_user_toDB(message):
     with sqlite3.connect(config.DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""INSERT INTO members (username, role) VALUES (?,?)""",[username, user_role])
