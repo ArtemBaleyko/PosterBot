@@ -25,7 +25,7 @@ bot = telebot.TeleBot(config.TOKEN)
 @bot.message_handler(commands = ['start'])
 def privit(message):
     print(message.from_user.username + " connected")
-    with sqlite3.connect("bot_database.db") as conn:
+    with sqlite3.connect(config.DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT username FROM members WHERE role='admin'""")
         admins = cursor.fetchall()
@@ -74,8 +74,17 @@ def privit(message):
 @bot.callback_query_handler(func =lambda call: True)
 def user_login(call):
     if is_worker is True:
-        bot.send_message(call.message.chat.id, '💬\n\nВы успешно вошли как ' + username + '😉\n\n💬')
-        bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
+        with sqlite3.connect(config.DB_NAME) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""SELECT id FROM members WHERE username=?""",[username])
+            user = cursor.fetchall()
+            user_id = user[0][0]
+            cursor.execute("""SELECT name, description, task_time FROM check_list WHERE member_id=?""",[user_id])
+            result = cursor.fetchall()
+            print(result)
+            bot.send_message(call.message.chat.id, '💬\n\nВы успешно вошли как ' + username + '😉\n\n💬')
+            bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
+        
     elif is_manager is True:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         button1 = types.KeyboardButton("История задач")
@@ -144,7 +153,7 @@ def manager_add_task_time(message):
  
 
 def manager_send_task(message):
-    with sqlite3.connect("bot_database.db") as conn:
+    with sqlite3.connect(config.DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""SELECT id, chat_id FROM members WHERE username=?""",[username])
         user = cursor.fetchall()
@@ -177,7 +186,7 @@ def add_new_user_role(message):
         bot.send_message(message.chat.id, "add_new_user_role")
 
 def add_new_user_toBD(message):
-    with sqlite3.connect("bot_database.db") as conn:
+    with sqlite3.connect(config.DB_NAME) as conn:
         cursor = conn.cursor()
         cursor.execute("""INSERT INTO members (username, role) VALUES (?,?)""",[username, user_role])
         conn.commit()

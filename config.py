@@ -1,1 +1,2 @@
 TOKEN = "992091701:AAEd2vBS6dyG5DRd7272Ua9HawNKatFayDc"
+DB_NAME = "bot_database.db"
