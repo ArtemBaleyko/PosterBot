@@ -84,6 +84,12 @@ def user_login(call):
             print(result)
             bot.send_message(call.message.chat.id, '💬\n\nВы успешно вошли как ' + username + '😉\n\n💬')
             bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
+            for row in result:
+                task_name = row[0]
+                task_descriprion = row[1]
+                task_time = row[2]
+                bot.send_message(call.message.chat.id, '‼️  У вас новая задача  ‼️')
+                bot.send_message(call.message.chat.id, '📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time)
         
     elif is_manager is True:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
