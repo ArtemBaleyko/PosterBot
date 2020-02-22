@@ -1,7 +1,8 @@
 import telebot
 import config
-import sqlite3 
+import sqlite3
 
+from datetime import time
 from telebot import types
 
 is_manager = False
@@ -11,7 +12,7 @@ new_user = False
 username = ''
 user_role = ''
 task_user = " "
-task_deskr = " "
+task_descriprion = " "
 task_name = " "
 task_time = " "
 mas_tasks = ["Уборка кухни", "Уборка столов", "Закрытие ресторана"]
@@ -102,8 +103,8 @@ def manager_readkey(message,):
  
 def choose_name_for_worker(message):
  try:
-     global task_name 
-     task_name = message.text
+     global username
+     username = message.text.replace('@','')
      msg = bot.reply_to(message, "Название задачи: ")
      bot.register_next_step_handler(msg, manager_add_task_name)
  except:
@@ -120,9 +121,9 @@ def manager_add_task_name(message):
  
 def manager_add_task_description(message):
     try:
-        global task_deskr
-        task_deskr = message.text
-        msg = bot.reply_to(message, "Время: ") 
+        global task_descriprion
+        task_descriprion = message.text
+        msg = bot.reply_to(message, "Время (ЧЧ:ММ): ") 
         bot.register_next_step_handler(msg, manager_add_task_time)
     except:
         bot.send_message(message.chat.id, "m_add_task_deskr")
@@ -136,15 +137,21 @@ def manager_add_task_time(message):
         keyboard.add('Подтвердить')
         keyboard.one_time_keyboard = True
         keyboard.resize_keyboard = 0.5
-        msg = bot.reply_to(message, "Подтвердите задачу..." + '\n\n📋  ' + task_name + '\n\n' + task_deskr + '\n\n' +'🕑  '+task_time, reply_markup = keyboard)
+        msg = bot.reply_to(message, "Подтвердите задачу..." + '\n\n📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+task_time, reply_markup = keyboard)
         bot.register_next_step_handler(msg, manager_send_task)
     except:
         bot.send_message(message.chat.id, "m_add_task_time")
  
 
 def manager_send_task(message):
-    bot.send_message(t_chat_id, '‼️  У вас новая задача  ‼️')
-    bot.send_message(t_chat_id, '📋  ' + task_name + '\n\n' + task_deskr + '\n\n' +'🕑  '+task_time)
+    with sqlite3.connect("bot_database.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("""SELECT id, chat_id FROM members WHERE username=?""",[username])
+        user = cursor.fetchall()
+        bot.send_message(user[0][1], '‼️  У вас новая задача  ‼️')
+        bot.send_message(user[0][1], '📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time)
+        cursor.execute("""INSERT INTO check_list (name, description, task_time, member_id) VALUES (?,?,?,?)""",[task_name, task_descriprion, task_time, user[0][0]])
+        conn.commit()
 
 
 def add_new_user_name(message):
