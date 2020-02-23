@@ -64,7 +64,7 @@ def privit(message):
         global username
         username = message.from_user.username
         if is_worker == True and new_user == True:
-            bot.send_message(message.chat.id, '💬\n\nВас преветсвует *Имя_Бота* Bot👋👋\nДавайте начнем рабочий день?\n\n💬', reply_markup=keyboard)
+            bot.send_message(message.chat.id, '💬\n\nВас преветсвует Check List Administrator Bot👋👋\nДавайте начнем рабочий день?\n\n💬', reply_markup=keyboard)
         elif is_manager == True:
             bot.send_message(message.chat.id, '💬\n\nИ снова здравствуйте!👋👋\n\nДавайте начнем рабочий день?\n\n💬',reply_markup=keyboard)
         elif is_worker == True:
@@ -87,7 +87,7 @@ def user_login(call):
             cursor.execute("""SELECT name, description, task_time, id FROM check_list WHERE member_id=?""",[user_id])
             result = cursor.fetchall()
             print(result)
-            bot.send_message(call.message.chat.id, '🌐     Вы в главном меню\n\nВыберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
+            bot.send_message(call.message.chat.id, '🌐     Вы в главном меню\n\nНажмите "Показать список активных задачи" и выберите какую задачу вы хотите завершить.\n\n👇👇👇👇👇👇👇👇')
             for row in result: 
                 task_name = row[0]
                 task_description = row[1]
@@ -97,7 +97,7 @@ def user_login(call):
                 button1 = types.InlineKeyboardButton("Выполнено", callback_data="complete_task")
                 keyboard.add(button1)
                 bot.send_message(call.message.chat.id, '‼️  У вас новая задача  ‼️')
-                bot.send_message(call.message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
+                bot.send_message(call.message.chat.id, '#' + str(task_id) + ' '+ '\n📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
         
     elif is_manager is True:
         keyboard = types.ReplyKeyboardMarkup()
@@ -145,7 +145,7 @@ def manager_readkey(message,):
                     task_description = row[2]
                     task_time = row[3]
                     task_owner = row[4]
-                    bot.send_message(message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time + '\n\n' + 'Ответственный: ' + task_owner)
+                    bot.send_message(message.chat.id, '#' + str(task_id) +' '+'\n📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time + '\n\n' + 'Ответственный: ' + task_owner)
             keyboard = types.InlineKeyboardMarkup(row_width=1)
             button1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
             keyboard.add(button1)
@@ -168,7 +168,7 @@ def manager_readkey(message,):
             msg = bot.send_message(message.chat.id, "✏️  Введите имя сотрудника: ")
             bot.register_next_step_handler(msg, add_new_user_name)
         elif message.text == "Удалить сотрудника ❌":
-            bot.send_message(message.chat.id, '❌  Вы выбрали Удалить сотрудника ❌',reply_markup = khide)  
+            bot.send_message(message.chat.id, '❌  Вы выбрали Удалить сотрудника  ❌',reply_markup = khide)  
             #список сотрудников из бд в виде строки
             with sqlite3.connect(config.DB_NAME) as conn:
                 cursor = conn.cursor()
@@ -219,7 +219,7 @@ def choose_name_for_worker(message):
             msg = bot.reply_to(message, "✏️  Название задачи: ")
             bot.register_next_step_handler(msg, manager_add_task_name)
         else:
-            bot.send_message(message.chat.id, "Такого сотрудника не существует", reply_markup=keyboard)
+            bot.send_message(message.chat.id, "🔎 Такого сотрудника не существует", reply_markup=keyboard)
     except:
         bot.send_message(message.chat.id, "😱 Упс, что-то пошло не так(\n\n       Попробуйте позже!")
 
