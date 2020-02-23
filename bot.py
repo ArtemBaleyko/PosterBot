@@ -12,7 +12,7 @@ new_user = False
 username = ''
 user_role = ''
 task_user = " "
-task_descriprion = " "
+task_description = " "
 task_name = " "
 task_time = " "
 mas_tasks = ["Уборка кухни", "Уборка столов", "Закрытие ресторана"]
@@ -89,14 +89,14 @@ def user_login(call):
             bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
             for row in result: 
                 task_name = row[0]
-                task_descriprion = row[1]
+                task_description = row[1]
                 task_time = row[2]
                 task_id = row[3]
                 keyboard = types.InlineKeyboardMarkup(row_width=1)
                 button1 = types.InlineKeyboardButton("Выполнено", callback_data="complete_task")
                 keyboard.add(button1)
                 bot.send_message(call.message.chat.id, '‼️  У вас новая задача  ‼️')
-                bot.send_message(call.message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
+                bot.send_message(call.message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
         
     elif is_manager is True:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -132,6 +132,18 @@ def manager_readkey(message,):
         khide = telebot.types.ReplyKeyboardRemove()
         if message.text == "История задач 📋":
             bot.send_message(message.chat.id, '📋  Вы выбрали ИСТОРИЯ ЗАДАЧ  📋\n\nСписок задач\n👇👇👇👇👇👇👇👇', reply_markup = khide)
+            with sqlite3.connect(config.DB_NAME) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""SELECT c.id, c.name, c.description, c.task_time, m.username FROM check_list c LEFT JOIN
+                                    members m WHERE c.member_id=m.id """)
+                tasks = cursor.fetchall()
+                for row in tasks:
+                    task_id = row[0]
+                    task_name = row[1]
+                    task_description = row[2]
+                    task_time = row[3]
+                    task_owner = row[4]
+                    bot.send_message(message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time + '\n\n' + 'Ответственный: ' + task_owner)
         elif message.text == "Создать задачу 📝":
             bot.send_message(message.chat.id, '📝  Вы выбрали СОЗДАТЬ ЗАДАЧУ  📝\n\n',reply_markup = khide)     
             msg = bot.send_message(message.chat.id, "Введите имя сотрудника: ")              #msg формирует сообщение для перехода в след функц
@@ -163,8 +175,8 @@ def manager_add_task_name(message):
  
 def manager_add_task_description(message):
     try:
-        global task_descriprion
-        task_descriprion = message.text
+        global task_description
+        task_description = message.text
         msg = bot.reply_to(message, "🕐  Время: \n\n⭐️подсказка - строго ЧЧ:ММ⭐️")
         bot.register_next_step_handler(msg, manager_add_task_time)
     except:
@@ -175,13 +187,17 @@ def manager_add_task_time(message):
     try:
         global task_time
         task_time = message.text
-        keyboard = types.ReplyKeyboardMarkup()
-        keyboard.add('Подтвердить и Отправить📌')
-        keyboard.one_time_keyboard = True
-        keyboard.resize_keyboard = True
-        msg = bot.send_message(message.chat.id, "✅Подтвердите задачу..." + '\n\n📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+task_time, reply_markup = keyboard)
-        bot.register_next_step_handler(msg, manager_send_task)
-        keyboard = types.ReplyKeyboardMarkup()
+        if time_is_valid(task_time) is True:
+            keyboard = types.ReplyKeyboardMarkup()
+            keyboard.add('Подтвердить и Отправить📌')
+            keyboard.one_time_keyboard = True
+            keyboard.resize_keyboard = True
+            msg = bot.send_message(message.chat.id, "✅Подтвердите задачу..." + '\n\n📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+task_time, reply_markup = keyboard)
+            bot.register_next_step_handler(msg, manager_send_task)
+            keyboard = types.ReplyKeyboardMarkup()
+        else:
+            msg = bot.reply_to(message, "🕐  Время: \n\n⭐️подсказка - строго ЧЧ:ММ⭐️")
+            bot.register_next_step_handler(msg, manager_add_task_time)
     except:
         bot.send_message(message.chat.id,"😱 Упс, что-то пошло не так(\n\n       Попробуйте позже!")
  
@@ -196,8 +212,8 @@ def manager_send_task(message):
         keyboard.add(button1)
         bot.send_message(message.chat.id, "Готово!  🎉\n\n👇 Вернуться в меню 👇", reply_markup = keyboard)
         bot.send_message(user[0][1], '‼️  У вас новая задача  ‼️')
-        bot.send_message(user[0][1], '📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time)
-        cursor.execute("""INSERT INTO check_list (name, description, task_time, member_id) VALUES (?,?,?,?)""",[task_name, task_descriprion, task_time, user[0][0]])
+        bot.send_message(user[0][1], '📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time)
+        cursor.execute("""INSERT INTO check_list (name, description, task_time, member_id) VALUES (?,?,?,?)""",[task_name, task_description, task_time, user[0][0]])
         conn.commit()
 
 
@@ -233,6 +249,19 @@ def add_new_user_toBD(message):
         keyboard.add(b1)
         bot.send_message(message.chat.id, 'Сотрудник ' + username + ' успешно добавлен  🎉\n\n👇 Вернуться в меню 👇', reply_markup=keyboard)
 
+
+def time_is_valid(task_time):
+    str_time = task_time.replace(':',' ').split(' ')
+    try:
+        hour = int(str_time[0])
+        minute = int(str_time[1])
+        if hour<=23 and hour >=0 and minute>=0 and minute <=60:
+            return True
+        else:
+            return False
+    except(ValueError):
+        return False
+    
 
 # RUN
 bot.polling(none_stop=True)
