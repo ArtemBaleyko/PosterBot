@@ -86,7 +86,7 @@ def user_login(call):
             cursor.execute("""SELECT name, description, task_time, id FROM check_list WHERE member_id=?""",[user_id])
             result = cursor.fetchall()
             print(result)
-            bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
+            bot.send_message(call.message.chat.id, '🌐     Вы в главном меню\n\nВыберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
             for row in result: 
                 task_name = row[0]
                 task_description = row[1]
@@ -99,14 +99,15 @@ def user_login(call):
                 bot.send_message(call.message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
         
     elif is_manager is True:
-        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard = types.ReplyKeyboardMarkup()
         button1 = types.KeyboardButton("История задач 📋")
         button2 = types.KeyboardButton("Создать задачу 📝")
-        button3 = types.KeyboardButton("Добавить сотрудника 👨‍💻") 
-        keyboard.resize_keyboard = True
+        button3 = types.KeyboardButton("Добавить сотрудника 👨‍💻")
+        button4 = types.KeyboardButton("Удалить сотрудника ❌")
+        keyboard.resize_keyboard=True
         keyboard.one_time_keyboard = True
-        keyboard.add(button1,button2,button3) 
-        bot.send_message(call.message.chat.id, '🌐      Вы в главном меню!\n⚡️Как менеджер вы можете:\n\n   1.История всех задач 📋\n\n   2.Создать новую задачу 📝\n\n   3.Добавить сотрудника 👨‍💻\n\n👇👇👇👇👇👇👇👇', reply_markup=keyboard)
+        keyboard.add(button1,button2,button3, button4) 
+        bot.send_message(call.message.chat.id, '🌐     Вы в главном меню\n\n⚡️Как менеджер вы можете:\n\n   1.История всех задач 📋\n\n   2.Создать новую задачу 📝\n\n   3.Добавить сотрудника 👨‍💻\n\n   4.Удалить сотрудника ❌\n\n👇👇👇👇👇👇👇👇', reply_markup=keyboard)
 
 
 @bot.callback_query_handler(lambda call: call.data =="complete_task")
@@ -123,7 +124,7 @@ def task_complete(call):
         cursor.execute("""SELECT chat_id FROM members WHERE role='admin'""")
         admins = cursor.fetchall()
         for row in admins:
-            bot.send_message(row[0],"Задача #{0} {1} выполнена".format(task_id, task_name))
+            bot.send_message(row[0],"Задача #{0} {1} выполнена ✅".format(task_id, task_name))
     
 
 @bot.message_handler(content_types=['text'])
@@ -144,17 +145,38 @@ def manager_readkey(message,):
                     task_time = row[3]
                     task_owner = row[4]
                     bot.send_message(message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time + '\n\n' + 'Ответственный: ' + task_owner)
+            keyboard = types.InlineKeyboardMarkup(row_width=1)
+            button1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
+            keyboard.add(button1)
+            bot.send_message(message.chat.id, "Назад в меню", reply_markup = keyboard)
         elif message.text == "Создать задачу 📝":
             bot.send_message(message.chat.id, '📝  Вы выбрали СОЗДАТЬ ЗАДАЧУ  📝\n\n',reply_markup = khide)     
-            msg = bot.send_message(message.chat.id, "Введите имя сотрудника: ")              #msg формирует сообщение для перехода в след функц
-            bot.register_next_step_handler(msg, choose_name_for_worker)     #переход в след функцию (message_string, method_name) желательно юзать try - эта штука может крашиться
+            msg = bot.send_message(message.chat.id, "Введите имя сотрудника: ")              
+            bot.register_next_step_handler(msg, choose_name_for_worker)     
         elif message.text == "Добавить сотрудника 👨‍💻":
             bot.send_message(message.chat.id, '👨‍💻  Вы выбрали ДОБАВИТЬ СОТРУДНИКА  👨‍💻',reply_markup = khide)
             msg = bot.send_message(message.chat.id, "✏️  Введите имя сотрудника: ")
-            bot.register_next_step_handler(msg, add_new_user_name)   
+            bot.register_next_step_handler(msg, add_new_user_name)
+        elif message.text == "Удалить сотрудника ❌":
+            bot.send_message(message.chat.id, '❌  Вы выбрали Удалить сотрудника ❌',reply_markup = khide)  
+            #список сотрудников из бд в виде строки
+            strl = "📜Список действующих сотрудников:\n\nсотрудник_1\nсотрудник_2\nсотрудник_3\nсотрудник_4\nсотрудник_5\nсотрудник_6\n\nВведите имя сотрудника для удаления\n  👇👇👇👇👇👇👇👇"
+            msg = bot.send_message(message.chat.id, strl)
+            bot.register_next_step_handler(msg, delete_user_by_name)   
     except:
         bot.send_message(message.chat.id, "😱 Упс, что-то пошло не так(\n\n       Попробуйте позже!")
  
+def delete_user_by_name(message):
+    userToDelete = message.text
+    #проверка на валидность
+    #удаление из бд
+    #user_chat_id = 
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    button1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
+    keyboard.add(button1)
+    bot.send_message(message.chat.id, "❌ Сотрудник " + "user_name" + " успешно удален! ❌",reply_markup=keyboard)
+    bot.send_message(633616258, "Менеджер " + message.from_user.username+ "убрал вас и белого списка\nНам жаль с вами расставаться😢\n") 
+
 def choose_name_for_worker(message):
     try:
         global username
@@ -196,7 +218,7 @@ def manager_add_task_time(message):
             bot.register_next_step_handler(msg, manager_send_task)
             keyboard = types.ReplyKeyboardMarkup()
         else:
-            msg = bot.reply_to(message, "🕐  Время: \n\n⭐️подсказка - строго ЧЧ:ММ⭐️")
+            msg = bot.reply_to(message, "💢Ошибка ввода \n\n⭐️подсказка - строго ЧЧ:ММ⭐️")
             bot.register_next_step_handler(msg, manager_add_task_time)
     except:
         bot.send_message(message.chat.id,"😱 Упс, что-то пошло не так(\n\n       Попробуйте позже!")
@@ -230,7 +252,7 @@ def add_new_user_role(message):
     try:
         global user_role
         user_role = message.text
-        keyboard = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+        keyboard = types.ReplyKeyboardMarkup()
         keyboard.add('Подтвердить📌')
         keyboard.one_time_keyboard = True
         keyboard.resize_keyboard = True
@@ -245,8 +267,8 @@ def add_new_user_toBD(message):
         cursor.execute("""INSERT INTO members (username, role) VALUES (?,?)""",[username, user_role])
         conn.commit()
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        b1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
-        keyboard.add(b1)
+        button1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
+        keyboard.add(button1)
         bot.send_message(message.chat.id, 'Сотрудник ' + username + ' успешно добавлен  🎉\n\n👇 Вернуться в меню 👇', reply_markup=keyboard)
 
 
