@@ -83,26 +83,48 @@ def user_login(call):
             cursor.execute("""SELECT id FROM members WHERE username=?""",[username])
             user = cursor.fetchall()
             user_id = user[0][0]
-            cursor.execute("""SELECT name, description, task_time FROM check_list WHERE member_id=?""",[user_id])
+            cursor.execute("""SELECT name, description, task_time, id FROM check_list WHERE member_id=?""",[user_id])
             result = cursor.fetchall()
             print(result)
             bot.send_message(call.message.chat.id, 'Выберите одну из активных задач: \n\n👇👇👇👇👇👇👇👇')
-            for row in result:
+            for row in result: 
                 task_name = row[0]
                 task_descriprion = row[1]
                 task_time = row[2]
+                task_id = row[3]
+                keyboard = types.InlineKeyboardMarkup(row_width=1)
+                button1 = types.InlineKeyboardButton("Выполнено", callback_data="complete_task")
+                keyboard.add(button1)
                 bot.send_message(call.message.chat.id, '‼️  У вас новая задача  ‼️')
-                bot.send_message(call.message.chat.id, '📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time)
+                bot.send_message(call.message.chat.id, '#' + str(task_id) + ' 📋  ' + task_name + '\n\n' + task_descriprion + '\n\n' +'🕑  '+ task_time,reply_markup=keyboard)
         
     elif is_manager is True:
         keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
         button1 = types.KeyboardButton("История задач 📋")
         button2 = types.KeyboardButton("Создать задачу 📝")
         button3 = types.KeyboardButton("Добавить сотрудника 👨‍💻") 
-        keyboard.resize_keyboard=True
+        keyboard.resize_keyboard = True
         keyboard.one_time_keyboard = True
         keyboard.add(button1,button2,button3) 
         bot.send_message(call.message.chat.id, '🌐      Вы в главном меню!\n⚡️Как менеджер вы можете:\n\n   1.История всех задач 📋\n\n   2.Создать новую задачу 📝\n\n   3.Добавить сотрудника 👨‍💻\n\n👇👇👇👇👇👇👇👇', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(lambda call: call.data =="complete_task")
+def task_complete(call):
+    with sqlite3.connect(config.DB_NAME) as conn:
+        cursor = conn.cursor()
+        message = call.message.text.split(" ")
+        task_id = int(message[0].replace('#', ''))
+        bot.delete_message(call.message.chat.id, call.message.message_id)
+        cursor.execute("""SELECT name FROM check_list WHERE id=?""",[task_id])
+        task_name = cursor.fetchall()[0][0]
+        cursor.execute("""DELETE FROM check_list WHERE id=?""",[task_id])
+        conn.commit()
+        cursor.execute("""SELECT chat_id FROM members WHERE role='admin'""")
+        admins = cursor.fetchall()
+        for row in admins:
+            bot.send_message(row[0],"Задача #{0} {1} выполнена".format(task_id, task_name))
+    
 
 @bot.message_handler(content_types=['text'])
 def manager_readkey(message,):
