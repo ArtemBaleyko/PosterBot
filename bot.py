@@ -33,7 +33,9 @@ def privit(message):
         for row in admins:
             if message.from_user.username in row:
                 global is_manager
+                global is_worker
                 is_manager = True
+                is_worker = False
                 print(message.from_user.username + " connected as admin")
                 cursor.execute("""UPDATE members SET chat_id=? WHERE username=?""",[message.chat.id, message.from_user.username])
                 conn.commit()
@@ -43,7 +45,8 @@ def privit(message):
         workers = cursor.fetchall()
         for row in workers:
             if message.from_user.username in row:
-                global is_worker
+                
+                is_manager = False
                 is_worker = True
                 print(message.from_user.username + " connected as worker")
                 cursor.execute("""SELECT chat_id FROM members WHERE username=?""", [message.from_user.username])
@@ -57,6 +60,9 @@ def privit(message):
                 else:
                     new_user = False
                 break
+        if user_exist(message.from_user.username) is not True:
+            is_manager = False
+            is_worker = False
 
         keyboard = types.InlineKeyboardMarkup(row_width=1)
         button1 = types.InlineKeyboardButton("Начать день!", callback_data="bstart")
@@ -64,7 +70,7 @@ def privit(message):
         global username
         username = message.from_user.username
         if is_worker == True and new_user == True:
-            bot.send_message(message.chat.id, '💬\n\nВас преветсвует Check List Administrator Bot👋👋\nДавайте начнем рабочий день?\n\n💬', reply_markup=keyboard)
+            bot.send_message(message.chat.id, '💬\n\nВас приветсвует Check List Administrator Bot👋👋\nДавайте начнем рабочий день?\n\n💬', reply_markup=keyboard)
         elif is_manager == True:
             bot.send_message(message.chat.id, '💬\n\nИ снова здравствуйте!👋👋\n\nДавайте начнем рабочий день?\n\n💬',reply_markup=keyboard)
         elif is_worker == True:
@@ -158,6 +164,7 @@ def manager_readkey(message,):
                 worker = cursor.fetchall()
                 strl = "📜Список действующих сотрудников:\n\n"
                 for row in worker:
+                    strl += '@'
                     strl += row[0]
                     strl += '\n'
                 strl += "\nВведите имя сотрудника\n  👇👇👇👇👇👇👇👇"     
@@ -168,7 +175,7 @@ def manager_readkey(message,):
             msg = bot.send_message(message.chat.id, "✏️  Введите имя сотрудника: ")
             bot.register_next_step_handler(msg, add_new_user_name)
         elif message.text == "Удалить сотрудника ❌":
-            bot.send_message(message.chat.id, '❌  Вы выбрали Удалить сотрудника  ❌',reply_markup = khide)  
+            bot.send_message(message.chat.id, '❌Вы выбрали Удалить сотрудника❌',reply_markup = khide)  
             #список сотрудников из бд в виде строки
             with sqlite3.connect(config.DB_NAME) as conn:
                 cursor = conn.cursor()
@@ -177,6 +184,7 @@ def manager_readkey(message,):
                 workers = cursor.fetchall()
                 strl = "📜Список действующих сотрудников:\n\n"
                 for row in workers:
+                    strl += '@'
                     strl += row[0]
                     strl += '\n'
                 strl += "\nВведите имя сотрудника для удаления\n  👇👇👇👇👇👇👇👇"
@@ -198,13 +206,16 @@ def delete_user_by_name(message):
         with sqlite3.connect(config.DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("""SELECT chat_id, id FROM members WHERE username=?""",[user_to_delete])
-            chat_id = cursor.fetchall()[0][0]
-            user_id = cursor.fetchall()[0][1]
-            cursor.execute("""DELETE FROM check_list WHERE member_id=?"""[user_id])
+            info = cursor.fetchall()
+            chat_id = info[0][0]
+            user_id = info[0][1]
+            cursor.execute("""DELETE FROM check_list WHERE member_id=?""",[user_id])
             cursor.execute("""DELETE FROM members WHERE username=?""",[user_to_delete])
             conn.commit()
             bot.send_message(message.chat.id, "❌ Сотрудник " + user_to_delete + " успешно удален! ❌",reply_markup=keyboard)
-            bot.send_message(chat_id, "Менеджер " + message.from_user.username+ " убрал вас и белого списка\nНам жаль с вами расставаться😢\n") 
+            bot.send_message(chat_id, "Менеджер " + message.from_user.username+ " убрал вас и белого списка\nНам жаль с вами расставаться😢\n")
+            global is_worker
+            is_worker = False
     else:
         bot.send_message(message.chat.id, "Такого сотрудника не существует", reply_markup=keyboard)
 
@@ -274,6 +285,10 @@ def manager_send_task(message):
         bot.send_message(user[0][1], '📋  ' + task_name + '\n\n' + task_description + '\n\n' +'🕑  '+ task_time)
         cursor.execute("""INSERT INTO check_list (name, description, task_time, member_id) VALUES (?,?,?,?)""",[task_name, task_description, task_time, user[0][0]])
         conn.commit()
+        global is_worker 
+        global is_manager
+        is_manager = True
+        is_worker = False
 
 
 def add_new_user_name(message):
@@ -313,6 +328,8 @@ def add_new_user_toBD(message):
         button1 = types.InlineKeyboardButton("Назад в меню 📲", callback_data="bstart")
         keyboard.add(button1)
         bot.send_message(message.chat.id, 'Сотрудник ' + username + ' успешно добавлен  🎉\n\n👇 Вернуться в меню 👇', reply_markup=keyboard)
+        global is_manager
+        is_manager = False
 
 
 def time_is_valid(task_time):
@@ -336,6 +353,8 @@ def user_is_worker(username):
             if username in row:
                 return True
         return False
+
+
 
 def user_exist(username):
     with sqlite3.connect(config.DB_NAME) as conn:
